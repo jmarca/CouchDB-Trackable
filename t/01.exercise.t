@@ -1,41 +1,36 @@
 use Test::Class::Sugar;
 use Test::Moose;
-use Data::Dumper;
+
+use FindBin;
+use lib "$FindBin::Bin/lib";
 
 testclass exercises CouchDB::Trackable {
-
-{
-package TrackableThing;
-use Moose;
-with 'CouchDB::Trackable';
-}
 
     # Test::Most has been magically included
     # 'warnings' and 'strict' are turned on
 
-    startup >> 1 {
+    startup >> 2 {
         use_ok $test->subject;
+        use_ok 'TrackableThing';
       }
 
     test creating a new tracking object >> 13{
        lives_and {
-         my $tracker = TrackableThing->new('host'=>'localhost','port'=>5984,'dbname'=>'bananapancakes','username'=>'james','password'=>'mgicn0mb3r');
-         isa_ok  $tracker => 'TrackableThing';
-         Test::Moose::does_ok  $tracker => $test->subject;
-         is $tracker->create, 0, 'auto create is not on';
-         eval{my $snuff = $tracker->create_db();
-            } ;
-         my $e;
-
+         my $tracker;
+         my $e = eval{ $tracker = TrackableThing->new('host'=>'localhost','port'=>5984,'dbname'=>'bananapancakes','username'=>'james','password'=>'mgicn0mb3r'); };
          # catch
-         $e = Exception::Class->caught('CouchDBError');
-         isnt $e, undef , 'database creation should fail here';
+         isnt $e || $@ , undef, 'tracker creation should fail due to wrong parameter set';
 
-         $tracker = TrackableThing->new('host'=>'localhost','port'=>5984,'dbname'=>'bananapancakes','username'=>'james','password'=>'mgicn0mb3r','create'=>1);
+         $tracker = TrackableThing->new('host_couchdb'=>'localhost','port_couchdb'=>5984,'dbname_couchdb'=>'bananapancakes','username_couchdb'=>'james','password_couchdb'=>'mgicn0mb3r');
          eval{$tracker->create_db();} ;
          # catch
          $e = Exception::Class->caught('CouchDBError');
-         is $e, undef , 'database creation should pass here';
+         isnt $e, undef , 'database creation should fail here too...create unset';
+         $tracker = TrackableThing->new('host_couchdb'=>'localhost','port_couchdb'=>5984,'dbname_couchdb'=>'bananapancakes','username_couchdb'=>'james','password_couchdb'=>'mgicn0mb3r','create'=>1);
+         eval{$tracker->create_db();} ;
+         # catch
+         $e = Exception::Class->caught('CouchDBError');
+         is $e, undef , 'using proper parameterized parameter set';
 
 
          # test tracking a document

@@ -2,34 +2,15 @@ use strict;
 use warnings;
 use MooseX::Declare;
 
-use DB::CouchDB;
+role CouchDB::Trackable {
 
-use Exception::Class ( 'CouchDBError', );
-
-role CouchDB::Trackable with DB::Connection {
-    use version; our $VERSION = qv('0.0.1');
-    has 'create' => (
-        is      => 'ro',
-        isa     => 'Bool',
-        default => 0,
-    );
-
-    has _connection => (
-        is         => 'ro',
-        isa        => 'DB::CouchDB',
-        lazy_build => 1,
-        handles =>
-          qr/^(?:get.*|bulk.*|json.*|handle*|create.*|update.*|delete.*)/sxm,
-
-    );
-
-    method _build__connection {
+    method _build__connection_couchdb {
         my $conn = DB::CouchDB->new(
-            host     => $self->host,
-            port     => $self->port,
-            db       => $self->dbname,
-            user     => $self->username,
-            password => $self->password,
+            host     => $self->host_couchdb,
+            port     => $self->port_couchdb,
+            db       => $self->dbname_couchdb,
+            user     => $self->username_couchdb,
+            password => $self->password_couchdb,
         );
 
         # create or not
@@ -47,12 +28,37 @@ role CouchDB::Trackable with DB::Connection {
         }
         $conn->handle_blessed(1);
         return $conn;
-      }
+    }
 
+
+with 'DB::Connection' => {
+    'name'            => 'couchdb',
+    'connection_type' => 'DB::CouchDB',
+    'connection_delegation' =>
+      qr/^(?:get.*|bulk.*|json.*|handle*|create.*|update.*|delete.*)/sxm,
+  };
+
+
+    use version; our $VERSION = qv('0.0.1');
+
+    has 'create' => (
+        is      => 'ro',
+        isa     => 'Bool',
+        default => 0,
+    );
+
+    # has _connection => (
+    #     is         => 'ro',
+    #     isa        => 'DB::CouchDB',
+    #     lazy_build => 1,
+    #     handles =>
+    #       qr/^(?:get.*|bulk.*|json.*|handle*|create.*|update.*|delete.*)/sxm,
+
+    # );
 
     method track( Str :$id, Int :$row = 1, Int :$processed = 0 ) {
         my $need_to_save = 0;
-          my $doc        = $self->_connection->get_doc($id);
+          my $doc        = $self->_connection_couchdb->get_doc($id);
           if ( !$doc->err ) {
 
             # have an existing doc
@@ -82,13 +88,12 @@ role CouchDB::Trackable with DB::Connection {
             $need_to_save = 1;
         }
         if ($need_to_save) {
-            $self->_connection->create_named_doc( { 'doc' => $doc } );
+            $self->_connection_couchdb->create_named_doc( { 'doc' => $doc } );
         }
 
         # report back where we are (0, 1, or some number)
         return $row;
       }
-
 
 }
 
