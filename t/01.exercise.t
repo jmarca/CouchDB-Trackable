@@ -61,10 +61,21 @@ testclass exercises CouchDB::Trackable {
          is $row,30, 'check names with slashes';
          $row = $tracker->track('id'=>'/home/james/data/document.tgz');
          is $row,30, 'check names with slashes';
-         $row = $tracker->track('id'=>'-home-james-data-document.tgz');
-         is $row,30, 'check names with slashes';
+         my $slashdoc = $tracker->get_doc('/home/james/data/document.tgz');
+         is $slashdoc->{'row'},30, 'check names with slashes';
 
-         my $rs =  $tracker->delete_db();
+         # check that other data can also be stored in the document
+         $row = $tracker->track('id'=>'/home/james/data/document.tgz','otherdata'=>{'my'=>'test','is'=>20});
+         is $row,30, 'check that other data can be saved';
+         my $moredoc = $tracker->get_doc('/home/james/data/document.tgz');
+         diag( 'fetched document is ' , Data::Dumper::Dumper( $moredoc ) );
+         is $moredoc->{'my'},'test', 'check that other data can be saved';
+         is $moredoc->{'is'},20, 'check that other data can be saved';
+
+
+         # delete the test db
+
+        my $rs =  $tracker->delete_db();
          diag( 'response to delete call is ' , Data::Dumper::Dumper( $rs ) );
 
          isa_ok $rs, 'DB::CouchDB::Result' , 'database deletion should pass here';

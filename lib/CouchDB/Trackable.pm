@@ -59,12 +59,12 @@ with 'DB::Connection' => {
 
     # );
 
-    method track( Str :$id, Int :$row = 1, Int :$processed = 0 ) {
+    method track( Str :$id, Int :$row = 1, Int :$processed = 0, HashRef :$otherdata? ) {
         my $need_to_save = 0;
-          my $canonical_id = $id;
-          $canonical_id =~ s/\//-/gsxm;
-          my $doc        = $self->_connection_couchdb->get_doc($canonical_id);
-          if ( !$doc->err ) {
+        my $canonical_id = $id;
+        # $canonical_id =~ s/\//-/gsxm;
+        my $doc = $self->_connection_couchdb->get_doc($canonical_id);
+        if ( !$doc->err ) {
 
             # have an existing doc
             if ($processed) {
@@ -78,6 +78,12 @@ with 'DB::Connection' => {
                 }
             }
 
+            # save any other data that might be relevant
+            if ($otherdata) {
+                map { $doc->{$_} = $otherdata->{$_} } keys %{$otherdata};
+                $need_to_save = 1;
+            }
+
             # report back where we are
             if ( $doc->{'processed'} ) {
                 $row = -1;
@@ -89,7 +95,11 @@ with 'DB::Connection' => {
         else {
 
             # no document exists.  create it
-            $doc = { '_id' => $canonical_id, 'processed' => $processed, 'row' => $row, };
+            $doc = {
+                '_id'       => $canonical_id,
+                'processed' => $processed,
+                'row'       => $row,
+            };
             $need_to_save = 1;
         }
         if ($need_to_save) {
