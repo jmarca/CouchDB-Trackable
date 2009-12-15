@@ -4,6 +4,9 @@ use MooseX::Declare;
 
 role CouchDB::Trackable {
 
+  use DB::CouchDB;
+  use Exception::Class ( 'CouchDBError', );
+
     method _build__connection_couchdb {
         my $conn = DB::CouchDB->new(
             host     => $self->host_couchdb,
@@ -35,7 +38,7 @@ with 'DB::Connection' => {
     'name'            => 'couchdb',
     'connection_type' => 'DB::CouchDB',
     'connection_delegation' =>
-      qr/^(?:get.*|bulk.*|json.*|handle*|create.*|update.*|delete.*)/sxm,
+      qr/^(.*)/sxm,
   };
 
 
@@ -58,7 +61,9 @@ with 'DB::Connection' => {
 
     method track( Str :$id, Int :$row = 1, Int :$processed = 0 ) {
         my $need_to_save = 0;
-          my $doc        = $self->_connection_couchdb->get_doc($id);
+          my $canonical_id = $id;
+          $canonical_id =~ s/\//-/gsxm;
+          my $doc        = $self->_connection_couchdb->get_doc($canonical_id);
           if ( !$doc->err ) {
 
             # have an existing doc
@@ -84,7 +89,7 @@ with 'DB::Connection' => {
         else {
 
             # no document exists.  create it
-            $doc = { '_id' => $id, 'processed' => $processed, 'row' => $row, };
+            $doc = { '_id' => $canonical_id, 'processed' => $processed, 'row' => $row, };
             $need_to_save = 1;
         }
         if ($need_to_save) {
