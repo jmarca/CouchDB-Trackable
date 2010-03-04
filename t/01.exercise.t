@@ -16,19 +16,43 @@ testclass exercises CouchDB::Trackable {
         use_ok 'TrackableThing';
       }
 
-    test creating a new tracking object >> 19{
+my $cdb_user   = $ENV{COUCHDB_USER} || q{};
+my $cdb_pass   = $ENV{COUCHDB_PASS} || q{};
+my $cdb_host   = $ENV{COUCHDB_HOST} || '127.0.0.1';
+my $cdb_dbname = $ENV{COUCHDB_DB}   || 'bananapancakes';
+my $cdb_port   = $ENV{COUCHDB_PORT} || '5984';
+
+                diag(   "environment vars used for testing CouchDB access\n"
+                      . "CDB_USER          "
+                      . $cdb_user . "\n"
+                      . "CDB_PASS          "
+                      . $cdb_pass . "\n"
+                      . "CDB_PORT          "
+                      . $cdb_port . "\n"
+                      . "CDB_HOST          "
+                      . $cdb_host
+                      . "\n" );
+
+    test creating a new tracking object >> 22{
        lives_and {
          my $tracker;
-         my $e = eval{ $tracker = TrackableThing->new('host'=>'localhost','port'=>5984,'dbname'=>'bananapancakes','username'=>'james','password'=>'mgicn0mb3r'); };
+         my $e = eval{ $tracker = TrackableThing->new('host'=>'localhost','port'=>5984,'dbname'=>'bananapancakes','username'=>'james','password'=>'babasb'); };
          # catch
          isnt $e || $@ , undef, 'tracker creation should fail due to wrong parameter set';
 
-         $tracker = TrackableThing->new('host_couchdb'=>'localhost','port_couchdb'=>5984,'dbname_couchdb'=>'bananapancakes','username_couchdb'=>'james','password_couchdb'=>'mgicn0mb3r');
+         $tracker = TrackableThing->new('host_couchdb'=>'localhost','port_couchdb'=>5984,'dbname_couchdb'=>'bananapancakes','username_couchdb'=>'james','password_couchdb'=>'bababa');
          my $puke = eval{$tracker->create_db();} ;
          # catch
          $e = Exception::Class->caught('CouchDBError');
          isnt $e, undef , "database creation should fail here too...create bit unset, e is *$e*";
-         $tracker = TrackableThing->new('host_couchdb'=>'localhost','port_couchdb'=>5984,'dbname_couchdb'=>'bananapancakes','username_couchdb'=>'james','password_couchdb'=>'mgicn0mb3r','create'=>1);
+        $tracker = TrackableThing->new(
+            'host_couchdb'     => $cdb_host,
+            'port_couchdb'     => $cdb_port,
+            'dbname_couchdb'   => $cdb_dbname,
+            'username_couchdb' => $cdb_user,
+            'password_couchdb' => $cdb_pass,
+            'create'           => 1
+        );
          eval{$tracker->create_db();} ;
          # catch
          $e = Exception::Class->caught('CouchDBError');
@@ -71,6 +95,14 @@ testclass exercises CouchDB::Trackable {
          diag( 'fetched document is ' , Data::Dumper::Dumper( $moredoc ) );
          is $moredoc->{'my'},'test', 'check that other data can be saved';
          is $moredoc->{'is'},20, 'check that other data can be saved';
+
+         # check that other data can also be stored in a new document
+         $row = $tracker->track('id'=>'/home/james/data/newdocument.tgz','otherdata'=>{'my'=>'test','is'=>20});
+         is $row,1, 'check that other data can be saved in a new doc';
+         my $moredoc = $tracker->get_doc('/home/james/data/newdocument.tgz');
+         diag( 'fetched document is ' , Data::Dumper::Dumper( $moredoc ) );
+         is $moredoc->{'my'},'test', 'check that other data can be saved in a new doc';
+         is $moredoc->{'is'},20, 'check that other data can be saved in a new doc';
 
 
          # delete the test db

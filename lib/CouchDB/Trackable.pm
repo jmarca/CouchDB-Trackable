@@ -4,6 +4,7 @@ use MooseX::Declare;
 
 role CouchDB::Trackable {
 
+  use version; our $VERSION = qv('0.0.2');
   use DB::CouchDB;
   use Exception::Class ( 'CouchDBError', );
 
@@ -24,9 +25,10 @@ role CouchDB::Trackable {
             $dbinfo = $conn->create_db();
         }
         if ( $dbinfo->err ) {
+            my $info_string =
+              $self->dbname_couchdb . ' on host ' . $self->host_couchdb . ':' . $self->port_couchdb;
             CouchDBError->throw( error =>
-"cannot find or create couchdb database $self->dbname on host $self->host:$self->port"
-            );
+                  "cannot find or create couchdb database $info_string " );
             return;
         }
         $conn->handle_blessed(1);
@@ -34,15 +36,14 @@ role CouchDB::Trackable {
     }
 
 
-with 'DB::Connection' => {
-    'name'            => 'couchdb',
-    'connection_type' => 'DB::CouchDB',
-    'connection_delegation' =>
-      qr/^(.*)/sxm,
-  };
+   with 'DB::Connection' => {
+       'name'            => 'couchdb',
+       'connection_type' => 'DB::CouchDB',
+       'connection_delegation' =>
+         qr/^(.*)/sxm,
+     };
 
 
-    use version; our $VERSION = qv('0.0.1');
 
     has 'create' => (
         is      => 'ro',
@@ -95,11 +96,15 @@ with 'DB::Connection' => {
         else {
 
             # no document exists.  create it
-            $doc = {
-                '_id'       => $canonical_id,
-                'processed' => $processed,
-                'row'       => $row,
-            };
+            $doc = { '_id' => $canonical_id, 'row'=>$row };
+            if ($processed) {
+                $doc->{'processed'} = 1;
+            }
+
+            # save any other data that might be relevant
+            if ($otherdata) {
+                map { $doc->{$_} = $otherdata->{$_} } keys %{$otherdata};
+            }
             $need_to_save = 1;
         }
         if ($need_to_save) {
