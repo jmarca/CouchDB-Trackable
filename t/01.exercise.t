@@ -15,6 +15,7 @@ testclass exercises CouchDB::Trackable {
         use_ok $test->subject;
         use_ok 'TrackableThing';
       }
+      use Data::Dumper;
 
 my $cdb_user   = $ENV{COUCHDB_USER} || q{};
 my $cdb_pass   = $ENV{COUCHDB_PASS} || q{};
@@ -31,6 +32,7 @@ my $cdb_port   = $ENV{COUCHDB_PORT} || '5984';
                       . $cdb_port . "\n"
                       . "CDB_HOST          "
                       . $cdb_host
+                        . " COUCHDB_DB= $cdb_dbname"
                       . "\n" );
 
     test creating a new tracking object >> 22{
@@ -43,6 +45,9 @@ my $cdb_port   = $ENV{COUCHDB_PORT} || '5984';
          $tracker = TrackableThing->new('host_couchdb'=>'localhost','port_couchdb'=>5984,'dbname_couchdb'=>'bananapancakes','username_couchdb'=>'james','password_couchdb'=>'bababa');
          my $puke = eval{$tracker->create_db();} ;
          # catch
+         if($puke){
+           diag("puke $puke");
+         }
          $e = Exception::Class->caught('CouchDBError');
          isnt $e, undef , "database creation should fail here too...create bit unset, e is *$e*";
         $tracker = TrackableThing->new(
@@ -76,10 +81,10 @@ my $cdb_port   = $ENV{COUCHDB_PORT} || '5984';
          is $row,30, "fetch the status of row value of 30 from a tracked document, and row is  $row" ;
          $row = $tracker->track('id'=>'my document.tgz','row'=>30, 'processed'=>1);
          is $row,-1, "tell the track db that the document is processed row=$row";
-         
+
          $row = $tracker->track('id'=>'my document.tgz');
          is $row,-1, "see if the track db still thinks that the document is processed row=$row";
-         
+
          # check names with slashes
          $row = $tracker->track('id'=>'/home/james/data/document.tgz','row'=>30);
          is $row,30, 'check names with slashes';
@@ -92,14 +97,13 @@ my $cdb_port   = $ENV{COUCHDB_PORT} || '5984';
          $row = $tracker->track('id'=>'/home/james/data/document.tgz','otherdata'=>{'my'=>'test','is'=>20});
          is $row,30, 'check that other data can be saved';
          my $moredoc = $tracker->get_doc('/home/james/data/document.tgz');
-         diag( 'fetched document is ' , Data::Dumper::Dumper( $moredoc ) );
          is $moredoc->{'my'},'test', 'check that other data can be saved';
          is $moredoc->{'is'},20, 'check that other data can be saved';
 
          # check that other data can also be stored in a new document
          $row = $tracker->track('id'=>'/home/james/data/newdocument.tgz','otherdata'=>{'my'=>'test','is'=>20});
          is $row,1, 'check that other data can be saved in a new doc';
-         my $moredoc = $tracker->get_doc('/home/james/data/newdocument.tgz');
+         $moredoc = $tracker->get_doc('/home/james/data/newdocument.tgz');
          diag( 'fetched document is ' , Data::Dumper::Dumper( $moredoc ) );
          is $moredoc->{'my'},'test', 'check that other data can be saved in a new doc';
          is $moredoc->{'is'},20, 'check that other data can be saved in a new doc';
