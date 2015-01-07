@@ -7,21 +7,21 @@ use lib "$FindBin::Bin/lib";
 testclass exercises CouchDB::Trackable {
 
   use Exception::Class ( 'CouchDBError', );
+  use Data::Dumper;
 
-    # Test::Most has been magically included
-    # 'warnings' and 'strict' are turned on
+  # Test::Most has been magically included
+  # 'warnings' and 'strict' are turned on
 
-    startup >> 2 {
-        use_ok $test->subject;
-        use_ok 'TrackableThing';
-      }
-      use Data::Dumper;
+  startup >> 2 {
+      use_ok $test->subject;
+      use_ok 'TrackableThing';
+    }
 
-my $cdb_user   = $ENV{COUCHDB_USER} || q{};
-my $cdb_pass   = $ENV{COUCHDB_PASS} || q{};
-my $cdb_host   = $ENV{COUCHDB_HOST} || '127.0.0.1';
-my $cdb_dbname = $ENV{COUCHDB_DB}   || 'bananapancakes';
-my $cdb_port   = $ENV{COUCHDB_PORT} || '5984';
+  my $cdb_user   = $ENV{COUCHDB_USER} || q{};
+  my $cdb_pass   = $ENV{COUCHDB_PASS} || q{};
+  my $cdb_host   = $ENV{COUCHDB_HOST} || '127.0.0.1';
+  my $cdb_dbname = $ENV{COUCHDB_DB}   || 'bananapancakes';
+  my $cdb_port   = $ENV{COUCHDB_PORT} || '5984';
 
                 diag(   "environment vars used for testing CouchDB access\n"
                       . "CDB_USER          "
