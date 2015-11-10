@@ -24,13 +24,13 @@ testclass exercises CouchDB::Trackable {
   my $cdb_port   = $ENV{COUCHDB_PORT} || '5984';
 
                 diag(   "environment vars used for testing CouchDB access\n"
-                      . "CDB_USER          "
+                      . "COUCHDB_USER          "
                       . $cdb_user . "\n"
-                      . "CDB_PASS          "
+                      . "COUCHDB_PASS          "
                       . $cdb_pass . "\n"
-                      . "CDB_PORT          "
+                      . "COUCHDB_PORT          "
                       . $cdb_port . "\n"
-                      . "CDB_HOST          "
+                      . "COUCHDB_HOST          "
                       . $cdb_host
                         . " COUCHDB_DB= $cdb_dbname"
                       . "\n" );
